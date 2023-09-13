@@ -3,6 +3,7 @@ import pandas as pd
 import networkx as nx
 import plotly.graph_objs as go
 import numpy as np
+from more_itertools import unique_everseen
 
 app = Dash(__name__)
 
@@ -124,7 +125,7 @@ def update_exp(dataset, genes):
 
 @app.callback(
     Output('meth-data', 'data'),
-    [Input('dataset-dropdown', 'value'),Input('genes-list', 'value')]
+    [Input('dataset-dropdown', 'value'), Input('genes-list', 'value')]
 )
 def update_meth(dataset, genes):
     meth_genes = np.load('/Volumes/SanDisk/Indices/' + dataset.lower() + '_meth_genes.npy', allow_pickle=True)
@@ -148,9 +149,13 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
                 'y': df.index.tolist()}
     if tab == 'tab-1':
         exp_genes = pd.read_json(exp)
+        exp_diss = df_to_plotly(exp_genes)
+        exp_sim = (1 - np.array(exp_diss['z'])) * 10000
+        exp_sim = pd.DataFrame(exp_sim, columns=exp_genes.columns, index=exp_genes.index)
+        exp_simm = exp_sim.mask(exp_sim == 10000)
         if tr_subtab == 'tr-sub-tab-1':
-            fig = go.Figure(go.Table(header=dict(values=df_to_plotly(exp_genes)['x']),
-                                     cells=dict(values=df_to_plotly(exp_genes)['z'])))
+            fig = go.Figure(go.Table(header=dict(values=exp_diss['x']),
+                                     cells=dict(values=exp_diss['z'])))
             return html.Div([
                 dcc.Graph(figure=fig)
             ])
@@ -162,16 +167,21 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
         #                                 #width=w_, edge_color='gray'))
         #     #]))
         else:
-            fig = go.Figure(go.Heatmap(df_to_plotly(exp_genes), colorscale = 'Viridis'))
+            fig = go.Figure(go.Heatmap(df_to_plotly(exp_simm), colorscale='Viridis'))
+            fig.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
             return html.Div([
                 dcc.Graph(figure=fig)
             ])
 
     elif tab == 'tab-2':
         meth_genes = pd.read_json(meth)
+        meth_diss = df_to_plotly(meth_genes)
+        meth_sim = (1 - np.array(meth_diss['z'])) * 100000
+        meth_sim = pd.DataFrame(meth_sim, columns=meth_genes.columns, index=meth_genes.index)
+        meth_simm = meth_sim.mask(meth_sim == 100000)
         if epi_subtab == 'epi-sub-tab-1':
-            fig = go.Figure(go.Table(header=dict(values=df_to_plotly(meth_genes)['x']),
-                                     cells=dict(values=df_to_plotly(meth_genes)['z'])))
+            fig = go.Figure(go.Table(header=dict(values=meth_diss['x']),
+                                     cells=dict(values=meth_diss['z'])))
             return html.Div([
                 dcc.Graph(figure=fig)
             ])
@@ -179,7 +189,8 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
         #     return
 
         else:
-            fig = go.Figure(go.Heatmap(df_to_plotly(meth_genes), colorscale='Sunset'))
+            fig = go.Figure(go.Heatmap(df_to_plotly(meth_simm), colorscale='Sunset'))
+            fig.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
             return html.Div([
                 dcc.Graph(figure=fig)
             ])
