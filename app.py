@@ -1,8 +1,9 @@
 from dash import Dash, html, dcc, Input, Output
+import numpy as np
 import pandas as pd
 import networkx as nx
 import plotly.graph_objs as go
-import numpy as np
+import itertools
 from more_itertools import unique_everseen
 
 app = Dash(__name__)
@@ -94,6 +95,8 @@ app.layout = html.Div(children=[
                     dcc.Tab(label='Data table', value='epi-sub-tab-1', style=sub_tab_style, selected_style=sub_tab_selected_style),
                     dcc.Tab(label='Network', value='epi-sub-tab-2', style=sub_tab_style, selected_style=sub_tab_selected_style),
                     dcc.Tab(label='Heatmap', value='epi-sub-tab-3', style=sub_tab_style, selected_style=sub_tab_selected_style),
+                    dcc.Tab(),
+                    dcc.Tab()
                 ])], style=tab_style, selected_style=tab_selected_style)]),
     html.Div(id='exp-meth')]),
     dcc.Store('exp-data'),
@@ -159,13 +162,62 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
             return html.Div([
                 dcc.Graph(figure=fig)
             ])
-        # elif tab == 'tr-sub-tab-2':
-        #     return
-        #
-        #     #html.Div([
-        #         #dcc.Graph(nx.draw_shell(nxg, with_labels=True, node_color='mediumpurple', node_size=3000,
-        #                                 #width=w_, edge_color='gray'))
-        #     #]))
+        elif tr_subtab == 'tr-sub-tab-2':
+            nxgraph = nx.from_pandas_adjacency(exp_sim, nx.MultiGraph)
+            w = nx.get_edge_attributes(nxgraph, 'weight')
+            p = nx.shell_layout(nxgraph)
+            nxgraph_nodes = p.keys()
+            nxgraph_edges = list(itertools.permutations(nxgraph_nodes, 2))
+            nxgraph_edges = list(unique_everseen(nxgraph_edges, key=frozenset))
+
+            for x in list(w.keys()):
+                if w[x] == 10000:
+                    del w[x]
+
+            edge_x = []
+            edge_y = []
+            for edge in nxgraph_edges:
+                x0, y0 = p[edge[0]]
+                x1, y1 = p[edge[1]]
+                edge_x.append(x0)
+                edge_x.append(x1)
+                edge_x.append(None)
+                edge_y.append(y0)
+                edge_y.append(y1)
+                edge_y.append(None)
+
+            edge_x = np.array(edge_x).reshape(len(nxgraph_edges), 3)
+            edge_y = np.array(edge_y).reshape(len(nxgraph_edges), 3)
+
+            def make_edge(n1, n2, width):
+                return go.Scatter(x=n1, y=n2, line=dict(width=width, color='LightSlateGray'), mode='lines')
+
+            edge_list = []
+            for i in range(len(nxgraph_edges)):
+                trace = make_edge(edge_x[i], edge_y[i], list(w.values())[i])
+                edge_list.append(trace)
+
+            node_x = []
+            node_y = []
+            for node in nxgraph_nodes:
+                x, y = p[node]
+                node_x.append(x)
+                node_y.append(y)
+
+            node_trace = go.Scatter(x=node_x, y=node_y, mode='markers+text', text=list(nxgraph.nodes),
+                                    textfont=dict(color='DarkSlateGray', size=20),
+                                    marker=dict(color=list(range(len(nxgraph.nodes))), size=100, colorscale='Viridis'))
+            node_trace.text = list(nxgraph.nodes)
+            layout = go.Layout(showlegend=False, hovermode='closest', height=700,
+                               xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                               yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+            fig = go.Figure(layout=layout)
+            for trace in edge_list:
+                fig.add_trace(trace)
+            fig.add_trace(node_trace)
+            return html.Div([
+                 dcc.Graph(figure=fig, responsive=True)
+            ])
         else:
             fig = go.Figure(go.Heatmap(df_to_plotly(exp_simm), colorscale='Viridis'))
             fig.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
@@ -185,8 +237,62 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
             return html.Div([
                 dcc.Graph(figure=fig)
             ])
-        # elif tab == 'epi-sub-tab-2':
-        #     return
+        elif epi_subtab == 'epi-sub-tab-2':
+            nxgraph = nx.from_pandas_adjacency(meth_sim, nx.MultiGraph)
+            w = nx.get_edge_attributes(nxgraph, 'weight')
+            p = nx.shell_layout(nxgraph)
+            nxgraph_nodes = p.keys()
+            nxgraph_edges = list(itertools.permutations(nxgraph_nodes, 2))
+            nxgraph_edges = list(unique_everseen(nxgraph_edges, key=frozenset))
+
+            for x in list(w.keys()):
+                if w[x] == 10000:
+                    del w[x]
+
+            edge_x = []
+            edge_y = []
+            for edge in nxgraph_edges:
+                x0, y0 = p[edge[0]]
+                x1, y1 = p[edge[1]]
+                edge_x.append(x0)
+                edge_x.append(x1)
+                edge_x.append(None)
+                edge_y.append(y0)
+                edge_y.append(y1)
+                edge_y.append(None)
+
+            edge_x = np.array(edge_x).reshape(len(nxgraph_edges), 3)
+            edge_y = np.array(edge_y).reshape(len(nxgraph_edges), 3)
+
+            def make_edge(n1, n2, width):
+                return go.Scatter(x=n1, y=n2, line=dict(width=width, color='LightSlateGray'), mode='lines')
+
+            edge_list = []
+            for i in range(len(nxgraph_edges)):
+                trace = make_edge(edge_x[i], edge_y[i], list(w.values())[i])
+                edge_list.append(trace)
+
+            node_x = []
+            node_y = []
+            for node in nxgraph_nodes:
+                x, y = p[node]
+                node_x.append(x)
+                node_y.append(y)
+
+            node_trace = go.Scatter(x=node_x, y=node_y, mode='markers+text', text=list(nxgraph.nodes),
+                                    textfont=dict(color='DarkSlateGray', size=20),
+                                    marker=dict(color=list(range(len(nxgraph.nodes))), size=100, colorscale='Viridis'))
+            node_trace.text = list(nxgraph.nodes)
+            layout = go.Layout(showlegend=False, hovermode='closest', height=700,
+                               xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                               yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+            fig = go.Figure(layout=layout)
+            for trace in edge_list:
+                fig.add_trace(trace)
+            fig.add_trace(node_trace)
+            return html.Div([
+                dcc.Graph(figure=fig, responsive=True)
+            ])
 
         else:
             fig = go.Figure(go.Heatmap(df_to_plotly(meth_simm), colorscale='Sunset'))
