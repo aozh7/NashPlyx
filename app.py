@@ -73,7 +73,7 @@ app.layout = html.Div(children=[
                                                      'STAD', 'TGCT', 'THCA', 'THYM', 'UCEC', 'UCS', 'UVM'], value='ACC',
                      searchable=False)], style=data_drop_styles),
     html.Div([
-        html.Label('Genes', style={'font-weight': 'bold',  'font-family': 'system-ui', 'text-align': 'left',
+        html.Label('Genes', style={'font-weight': 'bold', 'font-family': 'system-ui', 'text-align': 'left',
                                    'color': 'DarkSlateGray', 'font-size': '20px'}),
         dcc.Dropdown(id='genes-list', multi=True, clearable=True)], style={}),
     html.Div([
@@ -87,26 +87,39 @@ app.layout = html.Div(children=[
                             ''')], style=tab_style, selected_style=tab_selected_style),
             dcc.Tab(label='Transcriptome', value='tab-1', children=[
                 dcc.Tabs(id='tr-sub-tabs', value='tr-sub-tab-1', children=[
-                    dcc.Tab(label='Data table', value='tr-sub-tab-1', #children=[
-                        #html.Button('Download WGCNA Data', id='exp-data-button'),
-                        #dcc.Download(id='exp-data-down')],
+                    dcc.Tab(label='Data table', value='tr-sub-tab-1',  # children=[
+                            # html.Button('Download WGCNA Data', id='exp-data-button'),
+                            # dcc.Download(id='exp-data-down')],
                             style=sub_tab_style, selected_style=sub_tab_selected_style),
-                    dcc.Tab(label='Network', value='tr-sub-tab-2', style=sub_tab_style, selected_style=sub_tab_selected_style),
-                    dcc.Tab(label='Heatmap', value='tr-sub-tab-3', style=sub_tab_style, selected_style=sub_tab_selected_style),
-                    dcc.Tab(label='Dendrogram', value='tr-sub-tab-4', style=sub_tab_style, selected_style=sub_tab_selected_style),
-                    dcc.Tab(label='PCA', value='tr-sub-tab-5', style=sub_tab_style, selected_style=sub_tab_selected_style,
-                            children=[dcc.Slider(id='tr-pca-slide', min=1, value=2, step=1)])
-            ])], style=tab_style, selected_style=tab_selected_style),
+                    dcc.Tab(label='Network', value='tr-sub-tab-2', style=sub_tab_style,
+                            selected_style=sub_tab_selected_style),
+                    dcc.Tab(label='Heatmap', value='tr-sub-tab-3', style=sub_tab_style,
+                            selected_style=sub_tab_selected_style),
+                    dcc.Tab(label='Dendrogram', value='tr-sub-tab-4', style=sub_tab_style,
+                            selected_style=sub_tab_selected_style),
+                    dcc.Tab(label='PCA', value='tr-sub-tab-5', style=sub_tab_style,
+                            selected_style=sub_tab_selected_style,
+                            children=[html.Div([
+                                dcc.Slider(id='tr-pca-slide', min=1, value=2, step=1)]),
+                                html.Div(id='tr-pca-tab')])
+                ])], style=tab_style, selected_style=tab_selected_style),
             dcc.Tab(label='Epigenome', value='tab-2', children=[
                 dcc.Tabs(id='epi-sub-tabs', value='epi-sub-tab-1', children=[
-                    dcc.Tab(label='Data table', value='epi-sub-tab-1', style=sub_tab_style, selected_style=sub_tab_selected_style),
-                    dcc.Tab(label='Network', value='epi-sub-tab-2', style=sub_tab_style, selected_style=sub_tab_selected_style),
-                    dcc.Tab(label='Heatmap', value='epi-sub-tab-3', style=sub_tab_style, selected_style=sub_tab_selected_style),
-                    dcc.Tab(label='Dendrogram', value='epi-sub-tab-4', style=sub_tab_style, selected_style=sub_tab_selected_style),
-                    dcc.Tab(label='PCA', value='epi-sub-tab-5', style=sub_tab_style, selected_style=sub_tab_selected_style,
-                            children=[dcc.Slider(id='epi-pca-slide', min=1, value=2, step=1)])
-            ])], style=tab_style, selected_style=tab_selected_style)]),
-    html.Div(id='exp-meth')]),
+                    dcc.Tab(label='Data table', value='epi-sub-tab-1', style=sub_tab_style,
+                            selected_style=sub_tab_selected_style),
+                    dcc.Tab(label='Network', value='epi-sub-tab-2', style=sub_tab_style,
+                            selected_style=sub_tab_selected_style),
+                    dcc.Tab(label='Heatmap', value='epi-sub-tab-3', style=sub_tab_style,
+                            selected_style=sub_tab_selected_style),
+                    dcc.Tab(label='Dendrogram', value='epi-sub-tab-4', style=sub_tab_style,
+                            selected_style=sub_tab_selected_style),
+                    dcc.Tab(label='PCA', value='epi-sub-tab-5', style=sub_tab_style,
+                            selected_style=sub_tab_selected_style,
+                            children=[html.Div([
+                                dcc.Slider(id='epi-pca-slide', min=1, value=2, step=1)]),
+                                html.Div(id='epi-pca-tab')])
+                ])], style=tab_style, selected_style=tab_selected_style)]),
+        html.Div(id='exp-meth')]),
     dcc.Store('exp-data'),
     dcc.Store('meth-data')
 ])
@@ -154,9 +167,10 @@ def update_meth(dataset, genes):
     meth_diss = meth_diss.loc[genes, :]
     return meth_diss.to_json()
 
+
 @app.callback(
     [Output('tr-pca-slide', 'max'),
-        Output('epi-pca-slide', 'max')],
+     Output('epi-pca-slide', 'max')],
     Input('genes-list', 'value')
 )
 def update_slider(genes):
@@ -169,11 +183,9 @@ def update_slider(genes):
     Output('exp-meth', 'children'),
     [Input('exp-meth-out', 'value'), Input('tr-sub-tabs', 'value'),
      Input('epi-sub-tabs', 'value'), Input('exp-data', 'data'),
-     Input('meth-data', 'data'), Input('tr-pca-slide', 'max'),
-     Input('tr-pca-slide', 'value'), Input('epi-pca-slide', 'max'),
-     Input('epi-pca-slide', 'value')]
+     Input('meth-data', 'data')]
 )
-def render_tabs(tab, tr_subtab, epi_subtab, exp, meth, ncomp_tr_max, ncomp_tr, ncomp_epi_max, ncomp_epi):
+def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
     if exp is None:
         raise PreventUpdate
     if len(exp) == 0:
@@ -187,13 +199,14 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth, ncomp_tr_max, ncomp_tr, n
         return {'z': df.values.tolist(),
                 'x': df.columns.tolist(),
                 'y': df.index.tolist()}
+
     if tab == 'tab-1':
         exp_genes = pd.read_json(StringIO(exp))
         exp_diss = df_to_plotly(exp_genes)
         exp_sim = (1 - np.array(exp_diss['z'])) * 100
         exp_sim = pd.DataFrame(exp_sim, columns=exp_genes.columns, index=exp_genes.index)
         exp_simm = exp_sim.mask(exp_sim == 100)
-        exp_simm_gr = pd.DataFrame(exp_sim/100, columns=exp_genes.columns, index=exp_genes.index)
+        exp_simm_gr = pd.DataFrame(exp_sim / 100, columns=exp_genes.columns, index=exp_genes.index)
         if tr_subtab == 'tr-sub-tab-1':
             fig = go.Figure(go.Table(header=dict(values=exp_diss['x']),
                                      cells=dict(values=exp_diss['z'])))
@@ -254,7 +267,7 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth, ncomp_tr_max, ncomp_tr, n
                 fig.add_trace(trace)
             fig.add_trace(node_trace)
             return html.Div([
-                 dcc.Graph(figure=fig, responsive=True)
+                dcc.Graph(figure=fig, responsive=True)
             ])
         elif tr_subtab == 'tr-sub-tab-3':
             fig = go.Figure(go.Heatmap(df_to_plotly(exp_simm), colorscale='Viridis'))
@@ -270,25 +283,7 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth, ncomp_tr_max, ncomp_tr, n
                 dcc.Graph(figure=fig)
             ])
         else:
-            if len(exp) < 2:
-                raise PreventUpdate
-            if ncomp_tr == 1 and ncomp_tr_max == 1:
-                raise PreventUpdate
-            if ncomp_tr_max < ncomp_tr:
-                raise PreventUpdate
-
-            def pca_plot(n_comp):
-                pca = PCA(n_comp)
-                comps = pca.fit_transform(exp_simm_gr)
-                var = pca.explained_variance_ratio_.sum() * 100
-                pca_gr = px.scatter_matrix(comps, dimensions=range(n_comp), labels=exp_simm_gr.index,
-                                           color=exp_simm_gr.index, title=f'Total Explained Variance: {var:.2f}%')
-                # pca_gr.update_traces(diagonal_visible=False)
-                return pca_gr
-
-            return html.Div([
-                dcc.Graph(figure=go.Figure(pca_plot(ncomp_tr)), responsive=True)
-            ])
+            pass
 
     elif tab == 'tab-2':
         meth_genes = pd.read_json(StringIO(meth))
@@ -296,13 +291,13 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth, ncomp_tr_max, ncomp_tr, n
         meth_sim = (1 - np.array(meth_diss['z'])) * 1000
         meth_sim = pd.DataFrame(meth_sim, columns=meth_genes.columns, index=meth_genes.index)
         meth_simm = meth_sim.mask(meth_sim == 1000)
-        meth_simm_gr = pd.DataFrame(meth_sim/1000, columns=meth_genes.columns, index=meth_genes.index)
+        meth_simm_gr = pd.DataFrame(meth_sim / 1000, columns=meth_genes.columns, index=meth_genes.index)
         if epi_subtab == 'epi-sub-tab-1':
             fig = go.Figure(go.Table(header=dict(values=meth_diss['x']),
                                      cells=dict(values=meth_diss['z'])))
             return html.Div([
                 dcc.Graph(figure=fig)
-                ])
+            ])
         elif epi_subtab == 'epi-sub-tab-2':
             nxgraph = nx.from_pandas_adjacency(meth_sim, nx.MultiGraph)
             w = nx.get_edge_attributes(nxgraph, 'weight')
@@ -374,6 +369,87 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth, ncomp_tr_max, ncomp_tr, n
                 dcc.Graph(figure=fig)
             ])
         else:
+            pass
+    else:
+        pass
+
+
+@app.callback(
+    Output('tr-pca-tab', 'children'),
+    [Input('exp-meth-out', 'value'), Input('tr-sub-tabs', 'value'),
+     Input('exp-data', 'data'), Input('tr-pca-slide', 'max'),
+     Input('tr-pca-slide', 'value')]
+)
+def render_pca(tab, tr_subtab, exp, ncomp_tr_max, ncomp_tr):
+    if exp is None:
+        raise PreventUpdate
+    if len(exp) == 0:
+        raise PreventUpdate
+
+    def df_to_plotly(df):
+        return {'z': df.values.tolist(),
+                'x': df.columns.tolist(),
+                'y': df.index.tolist()}
+
+    if tab == 'tab-1':
+        exp_genes = pd.read_json(StringIO(exp))
+        exp_diss = df_to_plotly(exp_genes)
+        exp_sim = (1 - np.array(exp_diss['z'])) * 100
+        exp_sim = pd.DataFrame(exp_sim, columns=exp_genes.columns, index=exp_genes.index)
+        exp_simm_gr = pd.DataFrame(exp_sim / 100, columns=exp_genes.columns, index=exp_genes.index)
+
+        if tr_subtab == 'tr-sub-tab-5':
+            if len(exp) < 2:
+                raise PreventUpdate
+            if ncomp_tr == 1 and ncomp_tr_max == 1:
+                raise PreventUpdate
+            if ncomp_tr_max < ncomp_tr:
+                raise PreventUpdate
+
+            def pca_plot(n_comp):
+                pca = PCA(n_comp)
+                comps = pca.fit_transform(exp_simm_gr)
+                var = pca.explained_variance_ratio_.sum() * 100
+                pca_gr = px.scatter_matrix(comps, dimensions=range(n_comp), labels=exp_simm_gr.index,
+                                           color=exp_simm_gr.index, title=f'Total Explained Variance: {var:.2f}%')
+                # pca_gr.update_traces(diagonal_visible=False)
+                return pca_gr
+
+            return html.Div([
+                dcc.Graph(figure=go.Figure(pca_plot(ncomp_tr)), responsive=True)
+            ])
+
+        else:
+            pass
+    else:
+        pass
+
+
+@app.callback(
+    Output('epi-pca-tab', 'children'),
+    [Input('exp-meth-out', 'value'), Input('epi-sub-tabs', 'value'),
+     Input('meth-data', 'data'), Input('epi-pca-slide', 'max'),
+     Input('epi-pca-slide', 'value')]
+)
+def render_pca(tab, epi_subtab, meth, ncomp_epi_max, ncomp_epi):
+    if meth is None:
+        raise PreventUpdate
+    if len(meth) == 0:
+        raise PreventUpdate
+
+    def df_to_plotly(df):
+        return {'z': df.values.tolist(),
+                'x': df.columns.tolist(),
+                'y': df.index.tolist()}
+
+    if tab == 'tab-2':
+        meth_genes = pd.read_json(StringIO(meth))
+        meth_diss = df_to_plotly(meth_genes)
+        meth_sim = (1 - np.array(meth_diss['z'])) * 1000
+        meth_sim = pd.DataFrame(meth_sim, columns=meth_genes.columns, index=meth_genes.index)
+        meth_simm_gr = pd.DataFrame(meth_sim / 1000, columns=meth_genes.columns, index=meth_genes.index)
+
+        if epi_subtab == 'epi-sub-tab-5':
             if len(meth) < 2:
                 raise PreventUpdate
             if ncomp_epi == 1 and ncomp_epi_max == 1:
@@ -393,9 +469,13 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth, ncomp_tr_max, ncomp_tr, n
             return html.Div([
                 dcc.Graph(figure=go.Figure(pca_plot(ncomp_epi)), responsive=True)
             ])
-
+        else:
+            pass
     else:
         pass
+
+
+
 
 
 if __name__ == '__main__':
