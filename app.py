@@ -198,14 +198,11 @@ def update_slider(genes):
 )
 def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
 
-    # if exp is None:
-    #     raise PreventUpdate
-    # if len(exp) == 0:
-    #     raise PreventUpdate
-    # if meth is None:
-    #     raise PreventUpdate
-    # if len(meth) == 0:
-    #     raise PreventUpdate
+    if exp is None:
+        raise PreventUpdate
+
+    if meth is None:
+        raise PreventUpdate
 
     def df_to_plotly(df):
         return {'z': df.values.tolist(),
@@ -377,10 +374,8 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
      Input('exp-data', 'data')]
 )
 def render_dend(tab, tr_subtab, exp):
-    # if exp is None:
-    #     raise PreventUpdate
-    # if len(exp) == 0:
-    #     raise PreventUpdate
+    if exp is None:
+        raise PreventUpdate
 
     def df_to_plotly(df):
         return {'z': df.values.tolist(),
@@ -413,10 +408,8 @@ def render_dend(tab, tr_subtab, exp):
      Input('meth-data', 'data')]
 )
 def render_pca(tab, epi_subtab, meth):
-    # if meth is None:
-    #     raise PreventUpdate
-    # if len(meth) == 0:
-    #     raise PreventUpdate
+    if meth is None:
+        raise PreventUpdate
 
     def df_to_plotly(df):
         return {'z': df.values.tolist(),
@@ -450,10 +443,8 @@ def render_pca(tab, epi_subtab, meth):
      Input('tr-pca-slide', 'value')]
 )
 def render_pca(tab, tr_subtab, exp, ncomp_tr_max, ncomp_tr):
-    # if exp is None:
-    #     raise PreventUpdate
-    # if len(exp) == 0:
-    #     raise PreventUpdate
+    if exp is None:
+        raise PreventUpdate
 
     def df_to_plotly(df):
         return {'z': df.values.tolist(),
@@ -500,10 +491,8 @@ def render_pca(tab, tr_subtab, exp, ncomp_tr_max, ncomp_tr):
      Input('epi-pca-slide', 'value')]
 )
 def render_pca(tab, epi_subtab, meth, ncomp_epi_max, ncomp_epi):
-    # if meth is None:
-    #     raise PreventUpdate
-    # if len(meth) == 0:
-    #     raise PreventUpdate
+    if meth is None:
+        raise PreventUpdate
 
     def df_to_plotly(df):
         return {'z': df.values.tolist(),
