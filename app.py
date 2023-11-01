@@ -281,7 +281,7 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
             fig = go.Figure(go.Heatmap(df_to_plotly(exp_simm), colorscale='Viridis'))
             fig.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
             return html.Div([
-                dcc.Graph(figure=fig)
+                dcc.Graph(figure=fig, responsive=True)
             ])
         else:
             pass
@@ -296,7 +296,7 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
             fig = go.Figure(go.Table(header=dict(values=meth_diss['x']),
                                      cells=dict(values=meth_diss['z'])))
             return html.Div([
-                dcc.Graph(figure=fig)
+                dcc.Graph(figure=fig, responsive=True)
             ])
         elif epi_subtab == 'epi-sub-tab-2':
             nxgraph = nx.from_pandas_adjacency(meth_sim, nx.MultiGraph)
@@ -359,7 +359,7 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
             fig = go.Figure(go.Heatmap(df_to_plotly(meth_simm), colorscale='Sunset'))
             fig.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
             return html.Div([
-                dcc.Graph(figure=fig)
+                dcc.Graph(figure=fig, responsive=True)
             ])
         else:
             pass
@@ -393,7 +393,7 @@ def render_dend(tab, tr_subtab, exp):
                 raise PreventUpdate
             fig = ff.create_dendrogram(exp_simm_gr, orientation='left', labels=exp_simm_gr.index)
             return html.Div([
-                dcc.Graph(figure=fig)
+                dcc.Graph(figure=fig, responsive=True)
             ])
         else:
             pass
@@ -427,7 +427,7 @@ def render_pca(tab, epi_subtab, meth):
                 raise PreventUpdate
             fig = ff.create_dendrogram(meth_simm_gr, orientation='left', labels=meth_simm_gr.index)
             return html.Div([
-                dcc.Graph(figure=fig)
+                dcc.Graph(figure=fig, responsive=True)
             ])
         else:
             pass
