@@ -292,7 +292,6 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
         meth_sim = (1 - np.array(meth_diss['z'])) * 1000
         meth_sim = pd.DataFrame(meth_sim, columns=meth_genes.columns, index=meth_genes.index)
         meth_simm = meth_sim.mask(meth_sim == 1000)
-        meth_simm_gr = pd.DataFrame(meth_sim / 1000, columns=meth_genes.columns, index=meth_genes.index)
         if epi_subtab == 'epi-sub-tab-1':
             fig = go.Figure(go.Table(header=dict(values=meth_diss['x']),
                                      cells=dict(values=meth_diss['z'])))
