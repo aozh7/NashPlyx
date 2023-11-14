@@ -81,37 +81,44 @@ app.layout = html.Div(children=[
             dcc.Tab(label='About', value='tab-0', children=[
                 html.H1('NashPlyx'),
                 dcc.Markdown('''
-                            NashPlyx is a tool for network identification and analysis with TCGA datasets using WGCNA 
-                            results. Users can build and compare gene networks with transcriptional and methylational
-                            using the "Transcriptome" and "Epigenome" tabs.
+                            NashPlyx is a tool for coexpression network identification and analysis with TCGA datasets 
+                            using WGCNA results. Users can build and compare transcriptional and epitranscriptional 
+                            gene networks, using the "Transcriptome" and "Epitranscriptome" tabs, respectively. The
+                            distance TOMs are displayed and downloaded 
                             ''')], style=tab_style, selected_style=tab_selected_style),
             dcc.Tab(label='Transcriptome', value='tab-1', children=[
                 dcc.Tabs(id='tr-sub-tabs', value='tr-sub-tab-1', children=[
-                    dcc.Tab(label='Data table', value='tr-sub-tab-1',  #children=[
-                            # html.Button('Download WGCNA Data', id='exp-data-button'),
-                            # dcc.Download(id='exp-data-down')
+                    dcc.Tab(label='Data table', value='tr-sub-tab-1', style=sub_tab_style, selected_style=sub_tab_selected_style,
+                            children=[html.Div([
+
+                                html.Button('Download WGCNA Data', id='exp-data-button'),
+                                dcc.Download(id='exp-data-down'),
                             #dbc.Alert('No gene selected.', id='tr-sub-tab-1-alert', color='warning', dismissable=True)],
-                            style=sub_tab_style, selected_style=sub_tab_selected_style),
-                    dcc.Tab(label='Network', value='tr-sub-tab-2', style=sub_tab_style,
-                            selected_style=sub_tab_selected_style),
-                    dcc.Tab(label='Heatmap', value='tr-sub-tab-3', style=sub_tab_style,
-                            selected_style=sub_tab_selected_style),
-                    dcc.Tab(label='Dendrogram', value='tr-sub-tab-4', style=sub_tab_style,
-                            selected_style=sub_tab_selected_style, children=[html.Div(id='tr-dend-tab')]),
-                    dcc.Tab(label='PCA', value='tr-sub-tab-5', style=sub_tab_style,
-                            selected_style=sub_tab_selected_style,
+                            ]), html.Div('tr-data-tab')]),
+                    dcc.Tab(label='Network', value='tr-sub-tab-2', style=sub_tab_style, selected_style=sub_tab_selected_style,
+                            children=[html.Div([
+                            ]), html.Div('tr-netx-tab')]),
+                    dcc.Tab(label='Heatmap', value='tr-sub-tab-3', style=sub_tab_style, selected_style=sub_tab_selected_style,
+                            children=[html.Div([
+                            ]), html.Div('tr-heat-tab')]),
+                    dcc.Tab(label='Dendrogram', value='tr-sub-tab-4', style=sub_tab_style, selected_style=sub_tab_selected_style,
+                            children=[html.Div(id='tr-dend-tab')]),
+                    dcc.Tab(label='PCA', value='tr-sub-tab-5', style=sub_tab_style, selected_style=sub_tab_selected_style,
                             children=[html.Div([
                                 dcc.Slider(id='tr-pca-slide', min=1, value=2, step=1)]),
                                 html.Div(id='tr-pca-tab')])
                 ])], style=tab_style, selected_style=tab_selected_style),
-            dcc.Tab(label='Epigenome', value='tab-2', children=[
+            dcc.Tab(label='Epitranscriptome', value='tab-2', children=[
                 dcc.Tabs(id='epi-sub-tabs', value='epi-sub-tab-1', children=[
-                    dcc.Tab(label='Data table', value='epi-sub-tab-1', style=sub_tab_style,
-                            selected_style=sub_tab_selected_style),
-                    dcc.Tab(label='Network', value='epi-sub-tab-2', style=sub_tab_style,
-                            selected_style=sub_tab_selected_style),
-                    dcc.Tab(label='Heatmap', value='epi-sub-tab-3', style=sub_tab_style,
-                            selected_style=sub_tab_selected_style),
+                    dcc.Tab(label='Data table', value='epi-sub-tab-1', style=sub_tab_style,selected_style=sub_tab_selected_style,
+                            children=[html.Div([
+                            ]), html.Div('epi-data-tab')]),
+                    dcc.Tab(label='Network', value='epi-sub-tab-2', style=sub_tab_style, selected_style=sub_tab_selected_style,
+                            children=[html.Div([
+                            ]), html.Div('epi-netx-tab')]),
+                    dcc.Tab(label='Heatmap', value='epi-sub-tab-3', style=sub_tab_style, selected_style=sub_tab_selected_style,
+                            children=[html.Div([
+                            ]), html.Div('epi-heat-tab')]),
                     dcc.Tab(label='Dendrogram', value='epi-sub-tab-4', style=sub_tab_style,
                             selected_style=sub_tab_selected_style, children=[html.Div(id='epi-dend-tab')]),
                     dcc.Tab(label='PCA', value='epi-sub-tab-5', style=sub_tab_style,
@@ -143,13 +150,21 @@ def update_exp(dataset, genes):
     if genes is None:
         raise PreventUpdate
     exp_genes = np.load('/Volumes/SanDisk/Indices/' + dataset.lower() + '_exp_genes.npy', allow_pickle=True)
-    exp_diss = pd.read_csv('/Volumes/SanDisk/' + dataset.lower() + '_tom_diss.tsv.gz',
-                           compression='gzip', usecols=genes)
+    exp_diss = pd.read_csv('/Volumes/SanDisk/' + dataset.lower() + '_tom_diss.tsv.gz', compression='gzip', usecols=genes)
     if len(genes) == 0:
         raise PreventUpdate
     exp_diss = exp_diss.set_index(exp_genes)
     exp_diss = exp_diss.loc[genes, :]
     return exp_diss.to_json()
+
+
+@app.callback(
+    Output('exp-data-down', 'data'),
+    [Input('exp-data-button', 'n_clicks'), Input('dataset-dropdown', 'value'),
+     Input('exp-data', 'data')]
+)
+def func(n_clicks, dataset, exp):
+    return dcc.send_data_frame(exp.to_csv, filename=dataset.lower() + '_exp_genes.csv')
 
 
 @app.callback(
@@ -160,8 +175,7 @@ def update_meth(dataset, genes):
     if genes is None:
         raise PreventUpdate
     meth_genes = np.load('/Volumes/SanDisk/Indices/' + dataset.lower() + '_meth_genes.npy', allow_pickle=True)
-    meth_diss = pd.read_csv('/Volumes/SanDisk/' + dataset.lower() + '_meth_tom_diss.tsv.gz',
-                            compression='gzip', usecols=genes)
+    meth_diss = pd.read_csv('/Volumes/SanDisk/' + dataset.lower() + '_meth_tom_diss.tsv.gz', compression='gzip', usecols=genes)
     if len(genes) == 0:
         raise PreventUpdate
     meth_diss = meth_diss.set_index(meth_genes)
@@ -189,19 +203,75 @@ def update_slider(genes):
 #         return
 
 
-
 @app.callback(
-    Output('exp-meth', 'children'),
+    Output('tr-data-tab', 'children'),
     [Input('exp-meth-out', 'value'), Input('tr-sub-tabs', 'value'),
-     Input('epi-sub-tabs', 'value'), Input('exp-data', 'data'),
-     Input('meth-data', 'data')]
+     Input('exp-data', 'data')]
 )
-def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
+def render_tabs(tab, tr_subtab, exp):
 
     if exp is None:
         raise PreventUpdate
 
+    def df_to_plotly(df):
+        return {'z': df.values.tolist(),
+                'x': df.columns.tolist(),
+                'y': df.index.tolist()}
+
+    if tab == 'tab-1':
+        exp_genes = pd.read_json(StringIO(exp))
+        exp_diss = df_to_plotly(exp_genes)
+        if tr_subtab == 'tr-sub-tab-1':
+            fig = go.Figure(go.Table(header=dict(values=exp_diss['x']),
+                                     cells=dict(values=exp_diss['z'])))
+            return html.Div([
+                dcc.Graph(figure=fig, responsive=True)
+            ])
+        else:
+            pass
+    else:
+        pass
+
+
+@app.callback(
+    Output('epi-data-tab', 'children'),
+    [Input('exp-meth-out', 'value'), Input('epi-sub-tabs', 'value'),
+     Input('meth-data', 'data')]
+)
+def render_tabs(tab, epi_subtab, meth):
+
     if meth is None:
+        raise PreventUpdate
+
+    def df_to_plotly(df):
+        return {'z': df.values.tolist(),
+                'x': df.columns.tolist(),
+                'y': df.index.tolist()}
+
+    if tab == 'tab-2':
+        meth_genes = pd.read_json(StringIO(meth))
+        meth_diss = df_to_plotly(meth_genes)
+        if epi_subtab == 'epi-sub-tab-1':
+            fig = go.Figure(go.Table(header=dict(values=meth_diss['x']),
+                                     cells=dict(values=meth_diss['z'])))
+            return html.Div([
+                dcc.Graph(figure=fig, responsive=True)
+            ])
+        else:
+            pass
+    else:
+        pass
+
+
+
+@app.callback(
+    Output('tr-netx-tab', 'children'),
+    [Input('exp-meth-out', 'value'), Input('tr-sub-tabs', 'value'),
+     Input('exp-data', 'data')]
+)
+def render_tabs(tab, tr_subtab, exp):
+
+    if exp is None:
         raise PreventUpdate
 
     def df_to_plotly(df):
@@ -214,14 +284,8 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
         exp_diss = df_to_plotly(exp_genes)
         exp_sim = (1 - np.array(exp_diss['z'])) * 100
         exp_sim = pd.DataFrame(exp_sim, columns=exp_genes.columns, index=exp_genes.index)
-        exp_simm = exp_sim.mask(exp_sim == 100)
-        if tr_subtab == 'tr-sub-tab-1':
-            fig = go.Figure(go.Table(header=dict(values=exp_diss['x']),
-                                     cells=dict(values=exp_diss['z'])))
-            return html.Div([
-                dcc.Graph(figure=fig, responsive=True)
-            ])
-        elif tr_subtab == 'tr-sub-tab-2':
+
+        if tr_subtab == 'tr-sub-tab-2':
             nxgraph = nx.from_pandas_adjacency(exp_sim, nx.MultiGraph)
             w = nx.get_edge_attributes(nxgraph, 'weight')
             p = nx.shell_layout(nxgraph)
@@ -277,28 +341,33 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
             return html.Div([
                 dcc.Graph(figure=fig, responsive=True)
             ])
-        elif tr_subtab == 'tr-sub-tab-3':
-            fig = go.Figure(go.Heatmap(df_to_plotly(exp_simm), colorscale='Viridis'))
-            fig.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
-            return html.Div([
-                dcc.Graph(figure=fig, responsive=True)
-            ])
         else:
             pass
+    else:
+        pass
 
-    elif tab == 'tab-2':
+
+@app.callback(
+    Output('epi-netx-tab', 'children'),
+    [Input('exp-meth-out', 'value'), Input('epi-sub-tabs', 'value'),
+     Input('meth-data', 'data')]
+)
+def render_tabs(tab, epi_subtab, meth):
+
+    if meth is None:
+        raise PreventUpdate
+
+    def df_to_plotly(df):
+        return {'z': df.values.tolist(),
+                'x': df.columns.tolist(),
+                'y': df.index.tolist()}
+
+    if tab == 'tab-2':
         meth_genes = pd.read_json(StringIO(meth))
         meth_diss = df_to_plotly(meth_genes)
-        meth_sim = (1 - np.array(meth_diss['z'])) * 1000
+        meth_sim = (1 - np.array(meth_diss['z'])) * 10
         meth_sim = pd.DataFrame(meth_sim, columns=meth_genes.columns, index=meth_genes.index)
-        meth_simm = meth_sim.mask(meth_sim == 1000)
-        if epi_subtab == 'epi-sub-tab-1':
-            fig = go.Figure(go.Table(header=dict(values=meth_diss['x']),
-                                     cells=dict(values=meth_diss['z'])))
-            return html.Div([
-                dcc.Graph(figure=fig, responsive=True)
-            ])
-        elif epi_subtab == 'epi-sub-tab-2':
+        if epi_subtab == 'epi-sub-tab-2':
             nxgraph = nx.from_pandas_adjacency(meth_sim, nx.MultiGraph)
             w = nx.get_edge_attributes(nxgraph, 'weight')
             p = nx.shell_layout(nxgraph)
@@ -307,7 +376,7 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
             nxgraph_edges = list(unique_everseen(nxgraph_edges, key=frozenset))
 
             for x in list(w.keys()):
-                if w[x] == 1000:
+                if w[x] == 10:
                     del w[x]
 
             edge_x = []
@@ -344,7 +413,7 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
                                     textfont=dict(color='DarkSlateGray', size=20),
                                     marker=dict(color=list(range(len(nxgraph.nodes))), size=100, colorscale='Viridis'))
             node_trace.text = list(nxgraph.nodes)
-            layout = go.Layout(showlegend=False, hovermode='closest', height=700,
+            layout = go.Layout(showlegend=False, hovermode='closest',
                                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
             fig = go.Figure(layout=layout)
@@ -354,8 +423,67 @@ def render_tabs(tab, tr_subtab, epi_subtab, exp, meth):
             return html.Div([
                 dcc.Graph(figure=fig, responsive=True)
             ])
+        else:
+            pass
+    else:
+        pass
 
-        elif epi_subtab == 'epi-sub-tab-3':
+
+@app.callback(
+    Output('tr-heat-tab', 'children'),
+    [Input('exp-meth-out', 'value'), Input('tr-sub-tabs', 'value'),
+     Input('exp-data', 'data')]
+)
+def render_tabs(tab, tr_subtab, exp):
+
+    if exp is None:
+        raise PreventUpdate
+
+    def df_to_plotly(df):
+        return {'z': df.values.tolist(),
+                'x': df.columns.tolist(),
+                'y': df.index.tolist()}
+
+    if tab == 'tab-1':
+        exp_genes = pd.read_json(StringIO(exp))
+        exp_diss = df_to_plotly(exp_genes)
+        exp_sim = (1 - np.array(exp_diss['z'])) * 100
+        exp_sim = pd.DataFrame(exp_sim, columns=exp_genes.columns, index=exp_genes.index)
+        exp_simm = exp_sim.mask(exp_sim == 100)
+        if tr_subtab == 'tr-sub-tab-3':
+            fig = go.Figure(go.Heatmap(df_to_plotly(exp_simm), colorscale='Viridis'))
+            fig.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
+            return html.Div([
+                dcc.Graph(figure=fig, responsive=True)
+            ])
+        else:
+            pass
+    else:
+        pass
+
+
+@app.callback(
+    Output('epi-heat-tab', 'children'),
+    [Input('exp-meth-out', 'value'), Input('epi-sub-tabs', 'value'),
+     Input('meth-data', 'data')]
+)
+def render_tabs(tab, epi_subtab, meth):
+
+    if meth is None:
+        raise PreventUpdate
+
+    def df_to_plotly(df):
+        return {'z': df.values.tolist(),
+                'x': df.columns.tolist(),
+                'y': df.index.tolist()}
+
+    if tab == 'tab-2':
+        meth_genes = pd.read_json(StringIO(meth))
+        meth_diss = df_to_plotly(meth_genes)
+        meth_sim = (1 - np.array(meth_diss['z'])) * 10
+        meth_sim = pd.DataFrame(meth_sim, columns=meth_genes.columns, index=meth_genes.index)
+        meth_simm = meth_sim.mask(meth_sim == 10)
+        if epi_subtab == 'epi-sub-tab-3':
             fig = go.Figure(go.Heatmap(df_to_plotly(meth_simm), colorscale='Sunset'))
             fig.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
             return html.Div([
@@ -418,9 +546,9 @@ def render_pca(tab, epi_subtab, meth):
     if tab == 'tab-2':
         meth_genes = pd.read_json(StringIO(meth))
         meth_diss = df_to_plotly(meth_genes)
-        meth_sim = (1 - np.array(meth_diss['z'])) * 1000
+        meth_sim = (1 - np.array(meth_diss['z'])) * 10
         meth_sim = pd.DataFrame(meth_sim, columns=meth_genes.columns, index=meth_genes.index)
-        meth_simm_gr = pd.DataFrame(meth_sim / 1000, columns=meth_genes.columns, index=meth_genes.index)
+        meth_simm_gr = pd.DataFrame(meth_sim / 10, columns=meth_genes.columns, index=meth_genes.index)
 
         if epi_subtab == 'epi-sub-tab-4':
             if len(meth_simm_gr) < 2:
@@ -501,9 +629,9 @@ def render_pca(tab, epi_subtab, meth, ncomp_epi_max, ncomp_epi):
     if tab == 'tab-2':
         meth_genes = pd.read_json(StringIO(meth))
         meth_diss = df_to_plotly(meth_genes)
-        meth_sim = (1 - np.array(meth_diss['z'])) * 1000
+        meth_sim = (1 - np.array(meth_diss['z'])) * 10
         meth_sim = pd.DataFrame(meth_sim, columns=meth_genes.columns, index=meth_genes.index)
-        meth_simm_gr = pd.DataFrame(meth_sim / 1000, columns=meth_genes.columns, index=meth_genes.index)
+        meth_simm_gr = pd.DataFrame(meth_sim / 10, columns=meth_genes.columns, index=meth_genes.index)
 
         if epi_subtab == 'epi-sub-tab-5':
             if len(meth) < 2:
