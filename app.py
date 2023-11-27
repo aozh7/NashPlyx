@@ -1,5 +1,6 @@
 import json
 
+import mantel
 from dash import Dash, html, dcc, Input, Output
 from dash.exceptions import PreventUpdate
 from io import StringIO
@@ -15,11 +16,7 @@ from more_itertools import unique_everseen
 
 app = Dash(__name__, suppress_callback_exceptions=True)
 
-data_drop_styles = {
-    'color': 'DarkRed',
-    'font-size': '25px',
-    'font-family': 'system-ui'
-}
+np.random.seed(42)
 
 tab_style = {
     'borderTop': '1px solid #696969',
@@ -75,26 +72,38 @@ def df_to_plotly(df):
 app.layout = html.Div(children=[
     html.Div([
         html.Label('Dataset', style={'font-weight': 'bold', 'font-family': 'system-ui', 'text-align': 'left',
-                                     'color': 'DarkSlateGray', 'font-size': '25px'}),
+                    'color': 'DarkSlateGray', 'font-size': '25px', 'marginLeft': '50px', 'padding': '10px'}),
         dcc.Dropdown(id='dataset-dropdown', options=['ACC', 'BLCA', 'BRCA', 'CESC', 'CHOL', 'COAD', 'DLBC', 'ESCA',
-                                                     'GBM', 'HNSC', 'LAML', 'LGG', 'LIHC', 'LUAD', 'LUSC', 'KICH',
-                                                     'KIRC', 'KIRP', 'MESO', 'PAAD', 'PCPG', 'PRAD', 'READ', 'SKCM',
-                                                     'STAD', 'TGCT', 'THCA', 'THYM', 'UCEC', 'UCS', 'UVM'], value='ACC',
-                     searchable=False)], style=data_drop_styles),
-    html.Div([
+                    'GBM', 'HNSC', 'LAML', 'LGG', 'LIHC', 'LUAD', 'LUSC', 'KICH', 'KIRC', 'KIRP', 'MESO', 'PAAD',
+                    'PCPG', 'PRAD', 'READ', 'SKCM', 'STAD', 'TGCT', 'THCA', 'THYM', 'UCEC', 'UCS', 'UVM'], value='ACC',
+                    searchable=False, style={'width': '40%', 'marginLeft': '20px', 'padding': '10px', 'text-align': 'center',
+                                              'color': 'DarkRed', 'font-size': '25px', 'font-family': 'system-ui'}),
         html.Label('Genes', style={'font-weight': 'bold', 'font-family': 'system-ui', 'text-align': 'left',
-                                   'color': 'DarkSlateGray', 'font-size': '20px'}),
-        dcc.Dropdown(id='genes-list', multi=True, clearable=True)], style={}),
+                                'color': 'DarkSlateGray', 'font-size': '20px', 'padding': '40px', 'marginLeft': '20px',
+                                   'marginTop': '20px'}),
+        dcc.Dropdown(id='genes-list', multi=True, clearable=True)], style={'marginLeft': '20px', 'padding': '15px',
+                                'color': 'DarkRed', 'font-size': '20px', 'font-family': 'system-ui'}),
     html.Div([
         dcc.Tabs(id='exp-meth-out', value='tab-0', children=[
             dcc.Tab(label='About', value='tab-0', children=[
-                html.H1('NashPlyx'),
+                html.H1('NashPlyx', style={'font-family': 'system-ui', 'color': 'DarkSlateGray',
+                                           'font-size': '30px', 'marginLeft': '200px', 'marginTop': '100px',
+                                           'marginBottom': '50px'}),
                 dcc.Markdown('''
-                            NashPlyx is a tool for coexpression network identification and analysis with TCGA datasets 
-                            using WGCNA results. Users can build and compare transcriptional and epitranscriptional 
-                            gene networks, using the "Transcriptome" and "Epitranscriptome" tabs, respectively. The
-                            distance TOMs are displayed and downloaded 
-                            ''')], style=tab_style, selected_style=tab_selected_style),
+                            NashPlyx is a tool for visualizing and comparison of transcriptomic and epitranscriptomic 
+                            WGCNA results of TCGA datasets. Users can build transcriptional and epitranscriptional 
+                            gene networks from the main "Transcriptome" and "Epitranscriptome" tabs, respectively. The 
+                            two symmetric matrices generated from these tabs can be compared with Mantel's test from the 
+                            main "Comparison" tab on the right. Tables generated from the "Data table" tabs 
+                            
+                            This app was built with  
+                            ''', style={'font-family': 'system-ui', 'font-size': '14px', 'marginLeft': '300px'})],
+            style={'borderTop': '1px solid #696969', 'borderBottom': '1px solid #696969', 'backgroundColor': '#DarkRed',
+                   'color': 'LightSlateGray', 'font-size': '25px', 'font-family': 'system-ui', 'padding': '6px',
+                   'width': '250px', 'marginLeft': '200px'},
+            selected_style={'borderTop': '1px solid #696969', 'borderBottom': '1px solid #696969', 'marginLeft': '220px',
+                            'backgroundColor': 'Maroon', 'color': 'DarkSlateGray', 'font-size': '25px',
+                            'font-family': 'system-ui', 'fontWeight': 'bold', 'padding': '6px', 'width': '220px'}),
             dcc.Tab(label='Transcriptome', value='tab-1', children=[
                 dcc.Tabs(id='tr-sub-tabs', value='tr-sub-tab-1', children=[
                     dcc.Tab(label='Data table', value='tr-sub-tab-1', style=sub_tab_style, selected_style=sub_tab_selected_style,
@@ -143,13 +152,23 @@ app.layout = html.Div(children=[
                             children=[html.Div([
                                 dcc.Slider(id='epi-pca-slide', min=1, value=2, step=1)]),
                                 html.Div(id='epi-pca-tab')])
-                ])], style=tab_style, selected_style=tab_selected_style)]),
+                ])], style=tab_style, selected_style=tab_selected_style),
+            dcc.Tab(label='Comparison', value='tab-3',
+                    children=[html.Div([
+                ]), html.Div(id='mant-tab')],
+                    style={'borderTop': '1px solid #696969', 'borderBottom': '1px solid #696969',
+                           'backgroundColor': 'MediumSlateBlue', 'color': 'LightSlateGray', 'font-size': '25px',
+                           'font-family': 'system-ui', 'padding': '6px', 'width': '250px'},
+                    selected_style={'borderTop': '1px solid #696969', 'borderBottom': '1px solid #696969',
+                            'backgroundColor': 'SlateBlue', 'color': 'DarkSlateGray', 'font-size': '25px',
+                            'font-family': 'system-ui', 'fontWeight': 'bold', 'padding': '6px', 'width': '400px'})
+        ]),
         html.Div(id='exp-meth')]),
     dcc.Store('exp-data'),
     dcc.Store('meth-data'),
     dcc.Store('exp-sim'),
     dcc.Store('meth-sim')
-])
+], style={'backgroundColor': 'GhostWhite'})
 
 
 @app.callback(
@@ -198,7 +217,8 @@ def exp_down(n_clicks, dataset, exp):
 
 @app.callback(
     Output('meth-data', 'data'),
-    [Input('dataset-dropdown', 'value'), Input('genes-list', 'value')]
+    [Input('dataset-dropdown', 'value'),
+     Input('genes-list', 'value')]
 )
 def update_meth(dataset, genes):
     if dataset is None:
@@ -216,7 +236,8 @@ def update_meth(dataset, genes):
 
 @app.callback(
     Output('meth-data-down', 'data'),
-    [Input('meth-data-button', 'n_clicks'), Input('dataset-dropdown', 'value'),
+    [Input('meth-data-button', 'n_clicks'),
+     Input('dataset-dropdown', 'value'),
      Input('meth-data', 'data')]
 )
 def meth_down(n_clicks, dataset, meth):
@@ -261,7 +282,6 @@ def render_exp(exp):
     exp_diss = df_to_plotly(exp_genes)
     exp_sim = (1 - np.array(exp_diss['z']))
     exp_sim = pd.DataFrame(exp_sim, columns=exp_genes.columns, index=exp_genes.index)
-
     return exp_sim.to_json()
 
 
@@ -277,26 +297,53 @@ def render_meth(meth):
     meth_diss = df_to_plotly(meth_genes)
     meth_sim = (1 - np.array(meth_diss['z']))
     meth_sim = pd.DataFrame(meth_sim, columns=meth_genes.columns, index=meth_genes.index)
-
     return meth_sim.to_json()
+
+
+
+
+@app.callback(
+Output('mant-tab', 'children'),
+    [Input('dataset-dropdown', 'value'),
+     Input('exp-meth-out', 'value'),
+     Input('exp-data', 'data'),
+     Input('meth-data', 'data')]
+)
+def render_mant(dataset, tab, exp, meth):
+    if exp is None:
+        raise PreventUpdate
+    if meth is None:
+        raise PreventUpdate
+
+    if tab == 'tab-3':
+        exp_diss = pd.read_json(StringIO(exp))
+        meth_diss = pd.read_json(StringIO(meth))
+        res = mantel.test(exp_diss, meth_diss)
+        res_tab = [res[0], res[1], res[2]]
+        fig = go.Figure(go.Table(header=dict(values=['r', 'p', 'z']),
+                                 cells=dict(values=res_tab)))
+        return html.Div([
+            dcc.Graph(figure=fig)
+        ])
 
 
 @app.callback(
     Output('tr-data-tab', 'children'),
-    [Input('exp-meth-out', 'value'), Input('tr-sub-tabs', 'value'),
+    [Input('exp-meth-out', 'value'),
+     Input('tr-sub-tabs', 'value'),
      Input('exp-data', 'data')]
 )
-def render_tabs(tab, tr_subtab, exp_diss):
-    if exp_diss is None:
+def render_tabs(tab, tr_subtab, exp):
+    if exp is None:
         raise PreventUpdate
     if tab == 'tab-1':
         if tr_subtab == 'tr-sub-tab-1':
-            exp_diss = pd.read_json(StringIO(exp_diss))
+            exp_diss = pd.read_json(StringIO(exp))
             exp_diss = df_to_plotly(exp_diss)
             fig = go.Figure(go.Table(header=dict(values=exp_diss['x']),
                                      cells=dict(values=exp_diss['z'])))
             return html.Div([
-                dcc.Graph(figure=fig, responsive=True)
+                dcc.Graph(figure=fig)
             ])
         else:
             pass
@@ -306,20 +353,21 @@ def render_tabs(tab, tr_subtab, exp_diss):
 
 @app.callback(
     Output('epi-data-tab', 'children'),
-    [Input('exp-meth-out', 'value'), Input('epi-sub-tabs', 'value'),
+    [Input('exp-meth-out', 'value'),
+     Input('epi-sub-tabs', 'value'),
      Input('meth-data', 'data')]
 )
-def render_tabs(tab, epi_subtab, meth_diss):
-    if meth_diss is None:
+def render_tabs(tab, epi_subtab, meth):
+    if meth is None:
         raise PreventUpdate
     if tab == 'tab-2':
         if epi_subtab == 'epi-sub-tab-1':
-            meth_diss = pd.read_json(StringIO(meth_diss))
+            meth_diss = pd.read_json(StringIO(meth))
             meth_diss = df_to_plotly(meth_diss)
             fig = go.Figure(go.Table(header=dict(values=meth_diss['x']),
                                      cells=dict(values=meth_diss['z'])))
             return html.Div([
-                dcc.Graph(figure=fig, responsive=True)
+                dcc.Graph(figure=fig)
             ])
         else:
             pass
@@ -329,10 +377,12 @@ def render_tabs(tab, epi_subtab, meth_diss):
 
 @app.callback(
     Output('tr-box-tab', 'children'),
-    [Input('exp-meth-out', 'value'), Input('tr-sub-tabs', 'value'),
+    [Input('dataset-dropdown', 'value'),
+     Input('exp-meth-out', 'value'),
+     Input('tr-sub-tabs', 'value'),
      Input('exp-sim', 'data')]
 )
-def render_tabs(tab, tr_subtab, exp_sim):
+def render_tabs(dataset, tab, tr_subtab, exp_sim):
     if exp_sim is None:
         raise PreventUpdate
     if tab == 'tab-1':
@@ -341,12 +391,12 @@ def render_tabs(tab, tr_subtab, exp_sim):
             exp_mod = exp_sim.where(np.triu(np.ones(exp_sim.shape), k=1).astype(np.bool_))
             exp_unq = exp_mod.unstack().dropna()
             exp_unq.index = exp_unq.index.map('_'.join)
-            fig = px.box(exp_unq, orientation='h', points='all', hover_name=exp_unq.index,
-                         color=exp_unq.index).update_layout(xaxis_title='WGCNA similarity', yaxis_title='Gene pair',
-                            font=dict(size=14)).update_yaxes(showticklabels=False)
+            fig = px.box(exp_unq, orientation='h', points='all', hover_name=exp_unq.index, color=exp_unq.index)
+            fig.update_layout(xaxis_title='WGCNA similarity', yaxis_title='Gene pair',
+                              font=dict(size=12)).update_yaxes(showticklabels=False)
 
-            config = {'toImageButtonOptions': {'format': 'png', 'filename': 'custom_image', 'height': 800,
-                                               'width': 1000, 'scale': 100}}
+            config = {'toImageButtonOptions': {'format': 'png', 'filename': 'custom_image', 'height': 1000,
+                                               'width': 1200, 'scale': 100}}
             return html.Div([
                 dcc.Graph(figure=fig, config=config)
             ])
@@ -357,10 +407,12 @@ def render_tabs(tab, tr_subtab, exp_sim):
 
 
 @app.callback(Output('epi-box-tab', 'children'),
-                [Input('exp-meth-out', 'value'), Input('epi-sub-tabs', 'value'),
+                [Input('dataset-dropdown', 'value'),
+                 Input('exp-meth-out', 'value'),
+                 Input('epi-sub-tabs', 'value'),
                  Input('meth-sim', 'data')]
 )
-def render_tabs(tab, epi_subtab, meth_sim):
+def render_tabs(dataset, tab, epi_subtab, meth_sim):
     if meth_sim is None:
         raise PreventUpdate
     if tab == 'tab-2':
@@ -369,16 +421,14 @@ def render_tabs(tab, epi_subtab, meth_sim):
             meth_mod = meth_sim.where(np.triu(np.ones(meth_sim.shape), k=1).astype(np.bool_))
             meth_unq = meth_mod.unstack().dropna()
             meth_unq.index = meth_unq.index.map('_'.join)
-            fig = px.box(meth_unq, orientation='h', points='all', hover_name=meth_unq.index,
-                         color=meth_unq.index).update_layout(xaxis_title='WGCNA similarity', yaxis_title='Gene pair',
-                            font=dict(size=14)).update_yaxes(showticklabels=False)
-
-            config = {'toImageButtonOptions': {'format': 'png', 'filename': 'custom_image', 'height': 800,
-                                               'width': 1000, 'scale': 100}}
+            fig = px.box(meth_unq, orientation='h', points='all', hover_name=meth_unq.index, color=meth_unq.index)
+            fig.update_layout(xaxis_title='WGCNA similarity', yaxis_title='Gene pair',
+                              font=dict(size=12)).update_yaxes(showticklabels=False)
+            config = {'toImageButtonOptions': {'format': 'png', 'filename': 'custom_image', 'height': 1000,
+                                               'width': 1200, 'scale': 100}}
             return html.Div([
                 dcc.Graph(figure=fig, config=config)
             ])
-
         else:
             pass
     else:
@@ -387,10 +437,12 @@ def render_tabs(tab, epi_subtab, meth_sim):
 
 @app.callback(
     Output('tr-netx-tab', 'children'),
-    [Input('exp-meth-out', 'value'), Input('tr-sub-tabs', 'value'),
+    [Input('dataset-dropdown', 'value'),
+     Input('exp-meth-out', 'value'),
+     Input('tr-sub-tabs', 'value'),
      Input('exp-sim', 'data')]
 )
-def render_tabs(tab, tr_subtab, exp_sim):
+def render_tabs(dataset, tab, tr_subtab, exp_sim):
     if exp_sim is None:
         raise PreventUpdate
     if tab == 'tab-1':
@@ -438,8 +490,8 @@ def render_tabs(tab, tr_subtab, exp_sim):
                 node_y.append(y)
 
             node_trace = go.Scatter(x=node_x, y=node_y, mode='markers+text', text=list(nxgraph.nodes),
-                                    textfont=dict(color='DarkSlateGray', size=20),
-                                    marker=dict(color=list(range(len(nxgraph.nodes))), size=100, colorscale='Viridis'))
+                                    textfont=dict(color='DarkSlateGray', size=16),
+                                    marker=dict(color=list(range(len(nxgraph.nodes))), size=80, colorscale='Viridis'))
             node_trace.text = list(nxgraph.nodes)
             layout = go.Layout(showlegend=False, hovermode='closest', width=1500, height=1500,
                                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
@@ -459,10 +511,12 @@ def render_tabs(tab, tr_subtab, exp_sim):
 
 @app.callback(
     Output('epi-netx-tab', 'children'),
-    [Input('exp-meth-out', 'value'), Input('epi-sub-tabs', 'value'),
+    [Input('dataset-dropdown', 'value'),
+     Input('exp-meth-out', 'value'),
+     Input('epi-sub-tabs', 'value'),
      Input('meth-sim', 'data')]
 )
-def render_tabs(tab, epi_subtab, meth_sim):
+def render_tabs(dataset, tab, epi_subtab, meth_sim):
     if meth_sim is None:
         raise PreventUpdate
     if tab == 'tab-2':
@@ -510,8 +564,8 @@ def render_tabs(tab, epi_subtab, meth_sim):
                 node_y.append(y)
 
             node_trace = go.Scatter(x=node_x, y=node_y, mode='markers+text', text=list(nxgraph.nodes),
-                                    textfont=dict(color='DarkSlateGray', size=20),
-                                    marker=dict(color=list(range(len(nxgraph.nodes))), size=100, colorscale='Viridis'))
+                                    textfont=dict(color='DarkSlateGray', size=16),
+                                    marker=dict(color=list(range(len(nxgraph.nodes))), size=80, colorscale='Viridis'))
             node_trace.text = list(nxgraph.nodes)
             layout = go.Layout(showlegend=False, hovermode='closest', width=1500, height=1500,
                                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
@@ -531,10 +585,12 @@ def render_tabs(tab, epi_subtab, meth_sim):
 
 @app.callback(
     Output('tr-heat-tab', 'children'),
-    [Input('exp-meth-out', 'value'), Input('tr-sub-tabs', 'value'),
+    [Input('dataset-dropdown', 'value'),
+     Input('exp-meth-out', 'value'),
+     Input('tr-sub-tabs', 'value'),
      Input('exp-sim', 'data')]
 )
-def render_tabs(tab, tr_subtab, exp_sim):
+def render_tabs(dataset, tab, tr_subtab, exp_sim):
     if exp_sim is None:
         raise PreventUpdate
     if tab == 'tab-1':
@@ -554,17 +610,20 @@ def render_tabs(tab, tr_subtab, exp_sim):
 
 @app.callback(
     Output('epi-heat-tab', 'children'),
-    [Input('exp-meth-out', 'value'), Input('epi-sub-tabs', 'value'),
+    [Input('dataset-dropdown', 'value'),
+     Input('exp-meth-out', 'value'),
+     Input('epi-sub-tabs', 'value'),
      Input('meth-sim', 'data')]
 )
-def render_tabs(tab, epi_subtab, meth_sim):
+def render_tabs(dataset, tab, epi_subtab, meth_sim):
     if meth_sim is None:
         raise PreventUpdate
     if tab == 'tab-2':
         meth_sim = pd.read_json(StringIO(meth_sim))
         meth_simm = meth_sim.mask(meth_sim == 0)
         if epi_subtab == 'epi-sub-tab-4':
-            fig = go.Figure(go.Heatmap(df_to_plotly(meth_simm), colorscale='Sunset'), layout=go.Layout(width=1500, height=1000))
+            fig = go.Figure(go.Heatmap(df_to_plotly(meth_simm), colorscale='Sunset'),
+                            layout=go.Layout(width=1500, height=1000))
             fig.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
             return html.Div([
                 dcc.Graph(figure=fig)
@@ -577,10 +636,12 @@ def render_tabs(tab, epi_subtab, meth_sim):
 
 @app.callback(
     Output('tr-dend-tab', 'children'),
-    [Input('exp-meth-out', 'value'), Input('tr-sub-tabs', 'value'),
+    [Input('dataset-dropdown', 'value'),
+     Input('exp-meth-out', 'value'),
+     Input('tr-sub-tabs', 'value'),
      Input('exp-sim', 'data')]
 )
-def render_dend(tab, tr_subtab, exp_sim):
+def render_dend(dataset, tab, tr_subtab, exp_sim):
     if exp_sim is None:
         raise PreventUpdate
     if tab == 'tab-1':
@@ -588,7 +649,8 @@ def render_dend(tab, tr_subtab, exp_sim):
             exp_sim = pd.read_json(StringIO(exp_sim))
             if len(exp_sim) < 2:
                 raise PreventUpdate
-            fig = go.Figure(ff.create_dendrogram(exp_sim, orientation='left', labels=exp_sim.index), layout=go.Layout(width=1500, height=1000))
+            fig = go.Figure(ff.create_dendrogram(exp_sim, orientation='left', labels=exp_sim.index),
+                            layout=go.Layout(width=1500, height=1000))
             return html.Div([
                 dcc.Graph(figure=fig)
             ])
@@ -600,10 +662,12 @@ def render_dend(tab, tr_subtab, exp_sim):
 
 @app.callback(
     Output('epi-dend-tab', 'children'),
-    [Input('exp-meth-out', 'value'), Input('epi-sub-tabs', 'value'),
+    [Input('dataset-dropdown', 'value'),
+     Input('exp-meth-out', 'value'),
+     Input('epi-sub-tabs', 'value'),
      Input('meth-sim', 'data')]
 )
-def render_pca(tab, epi_subtab, meth_sim):
+def render_dend(dataset, tab, epi_subtab, meth_sim):
     if meth_sim is None:
         raise PreventUpdate
     if tab == 'tab-2':
@@ -611,7 +675,8 @@ def render_pca(tab, epi_subtab, meth_sim):
         if epi_subtab == 'epi-sub-tab-5':
             if len(meth_sim) < 2:
                 raise PreventUpdate
-            fig = go.Figure(ff.create_dendrogram(meth_sim, orientation='left', labels=meth_sim.index), layout=go.Layout(width=1500, height=1000))
+            fig = go.Figure(ff.create_dendrogram(meth_sim, orientation='left', labels=meth_sim.index),
+                            layout=go.Layout(width=1500, height=1000))
             return html.Div([
                 dcc.Graph(figure=fig)
             ])
@@ -623,11 +688,14 @@ def render_pca(tab, epi_subtab, meth_sim):
 
 @app.callback(
     Output('tr-pca-tab', 'children'),
-    [Input('exp-meth-out', 'value'), Input('tr-sub-tabs', 'value'),
-     Input('exp-sim', 'data'), Input('tr-pca-slide', 'max'),
+    [Input('dataset-dropdown', 'value'),
+     Input('exp-meth-out', 'value'),
+     Input('tr-sub-tabs', 'value'),
+     Input('exp-sim', 'data'),
+     Input('tr-pca-slide', 'max'),
      Input('tr-pca-slide', 'value')]
 )
-def render_pca(tab, tr_subtab, exp_sim, ncomp_tr_max, ncomp_tr):
+def render_pca(dataset, tab, tr_subtab, exp_sim, ncomp_tr_max, ncomp_tr):
     if exp_sim is None:
         raise PreventUpdate
     if tab == 'tab-1':
@@ -660,11 +728,14 @@ def render_pca(tab, tr_subtab, exp_sim, ncomp_tr_max, ncomp_tr):
 
 @app.callback(
     Output('epi-pca-tab', 'children'),
-    [Input('exp-meth-out', 'value'), Input('epi-sub-tabs', 'value'),
-     Input('meth-sim', 'data'), Input('epi-pca-slide', 'max'),
+    [Input('dataset-dropdown', 'value'),
+     Input('exp-meth-out', 'value'),
+     Input('epi-sub-tabs', 'value'),
+     Input('meth-sim', 'data'),
+     Input('epi-pca-slide', 'max'),
      Input('epi-pca-slide', 'value')]
 )
-def render_pca(tab, epi_subtab, meth_sim, ncomp_epi_max, ncomp_epi):
+def render_pca(dataset, tab, epi_subtab, meth_sim, ncomp_epi_max, ncomp_epi):
     if meth_sim is None:
         raise PreventUpdate
     if tab == 'tab-2':
